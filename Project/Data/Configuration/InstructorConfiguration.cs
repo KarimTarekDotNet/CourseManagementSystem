@@ -21,6 +21,10 @@ namespace Project.Data.Configuration
             builder.Property(i => i.PhoneNumber).HasMaxLength(15).IsRequired();
             builder.HasIndex(i => i.PhoneNumber).IsUnique();
 
+            builder.Property(c => c.IsDeleted)
+                .HasDefaultValue(false)
+                .IsRequired();
+
             builder.HasMany(i => i.Courses)
                    .WithOne(c => c.Instructor)
                    .HasForeignKey(c => c.InstructorId)

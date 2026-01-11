@@ -8,16 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="appsettings.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="appsettings.json">
+    <EmbeddedResource Include="appsettings.App.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ProjectApi\ProjectApi.csproj" />
     <ProjectReference Include="..\Project\Project.csproj" />
   </ItemGroup>
 

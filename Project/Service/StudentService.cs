@@ -4,6 +4,7 @@ using Project.Data;
 using Project.Entities;
 using Project.Entities.Enums;
 using Project.Interfaces.ServiceInterface;
+using System;
 
 namespace Project.Service
 {
@@ -17,26 +18,19 @@ namespace Project.Service
         private async Task<Student> GetStudentById(int id)
         {
             Guard.AgainstNonPositive(id);
-            var student = await Context.Students.Include(s => s.Enrollments).FirstOrDefaultAsync(s => s.Id == id);
+            var student = await Context.Students.IgnoreQueryFilters().Include(s => s.Enrollments).FirstOrDefaultAsync(s => s.Id == id);
             if (student == null)
                 throw new InvalidOperationException("Student not found");
             return student;
         }
         public async Task<int> AddStudent(string firstName, string lastName, string? college, string email, string phoneNumber)
         {
-            var lowerFirstName = firstName.ToLower();
-            var lowerLastName = lastName.ToLower();
-            var lowerEmail = email.ToLower();
-
-            if (await Context.Students.AnyAsync(s =>
-                s.FirstName.ToLower() == lowerFirstName &&
-                s.LastName.ToLower() == lowerLastName))
-                throw new InvalidOperationException("Student already exists");
-
-            if (await Context.Students.AnyAsync(s => s.Email.ToLower() == lowerEmail))
+            if (await Context.Students.AnyAsync(s => EF.Functions.Like(s.Email, email)) &&
+                await Context.Instructors.AnyAsync(s => EF.Functions.Like(s.Email, email)))
                 throw new InvalidOperationException("Email already in use");
 
-            if (await Context.Students.AnyAsync(s => s.PhoneNumber == phoneNumber))
+            if (await Context.Students.AnyAsync(s => EF.Functions.Like(s.PhoneNumber, phoneNumber)) &&
+                await Context.Instructors.AnyAsync(s => EF.Functions.Like(s.PhoneNumber, phoneNumber)))
                 throw new InvalidOperationException("Phone number already in use");
 
             var student = new Student(
@@ -61,6 +55,16 @@ namespace Project.Service
                 throw new InvalidOperationException("Cannot delete student because it has active or completed enrollments.");
 
             student.SoftDelete();
+            await Context.SaveChangesAsync();
+        }
+
+        public async Task RestoreStudent(int id)
+        {
+            Guard.AgainstNonPositive(id);
+            var student = await Context.Students.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id && c.IsDeleted == true);
+            if (student == null)
+                throw new InvalidOperationException("student not found");
+            student.Restore();
             await Context.SaveChangesAsync();
         }
 

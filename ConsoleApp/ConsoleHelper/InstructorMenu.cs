@@ -1,15 +1,14 @@
-﻿using ConsoleApp.ConsoleHelper.HelperMenus;
-using Project.Data;
-using Project.Service;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.ConsoleHelper.HelperMenus;
 
 namespace ConsoleApp.ConsoleHelper
 {
     public static class InstructorMenu
     {
-        public static async Task DisplayInstructorMenu(AppDbContext context)
+        public static async Task DisplayInstructorMenu(InstructorApiService instructorApiService)
         {
-            var instructorService = new InstructorService(context);
-            var helperInstructorMenu = new HelperInstructorMenu(instructorService);
+            var helperInstructorMenu = new HelperInstructorMenu(instructorApiService);
+
             while (true)
             {
                 Console.Clear();
@@ -20,40 +19,55 @@ namespace ConsoleApp.ConsoleHelper
                 Console.WriteLine("4. Delete Instructor");
                 Console.WriteLine("5. Assign Course");
                 Console.WriteLine("6. Remove Course");
-                Console.WriteLine("7. Back to Main Menu");
+                Console.WriteLine("7. Restore Instructor");
+                Console.WriteLine("0. Back to Main Menu");
                 Console.Write("Select an option: ");
-                int choice;
-                while (int.TryParse(Console.ReadLine(), out choice) == false)
+
+                if (!int.TryParse(Console.ReadLine(), out int choice))
                 {
-                    Console.WriteLine("Invalid input. Please enter a number corresponding to the menu options.");
-                    Console.Write("Select an option: ");
+                    Console.WriteLine("Invalid input.");
+                    Console.ReadKey();
+                    continue;
                 }
+
                 switch (choice)
                 {
                     case 1:
                         await helperInstructorMenu.AddInstructor();
                         break;
+
                     case 2:
-                        helperInstructorMenu.ViewInstructors(context);
+                        await helperInstructorMenu.ViewInstructors();
                         break;
+
                     case 3:
                         await helperInstructorMenu.UpdateInstructor();
                         break;
+
                     case 4:
                         await helperInstructorMenu.RemoveInstructor();
                         break;
+
                     case 5:
                         await helperInstructorMenu.AssignCourse();
                         break;
+
                     case 6:
                         await helperInstructorMenu.RemoveCourse();
                         break;
+
                     case 7:
+                        await helperInstructorMenu.RestoreInstructor();
+                        break;
+
+                    case 0:
                         return;
+
                     default:
-                        Console.WriteLine("Invalid choice. Please try again.");
+                        Console.WriteLine("Invalid choice.");
                         break;
                 }
+
                 Console.WriteLine("Press any key to continue...");
                 Console.ReadKey();
             }

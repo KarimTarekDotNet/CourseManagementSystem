@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Project.Data;
 using Project.Entities;
@@ -10,6 +11,7 @@ namespace ProjectApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class StudentsController : ControllerBase
     {
         private readonly StudentService _studentService;
@@ -24,40 +26,68 @@ namespace ProjectApi.Controllers
         [HttpGet]
         public Task<ActionResult<List<StudentDTO>>> GetAllStudent()
         {
-            var students = StudentQueries.GetAllStudent(context.Students.AsQueryable());
-            var studentDTOs = students.Select(s => new StudentDTO
-            {
-                Id = s.Id,
-                FirstName = s.FirstName,
-                LastName = s.LastName,
-                College = s.College,
-                Email = s.Email,
-                PhoneNumber = s.PhoneNumber,
-                IsDeleted = s.IsDeleted
-            }).ToList();
+            var students = StudentQueries.GetAllStudents(context.Students.AsQueryable());
+            var studentDTOs = MapToStudentsDTO(students);
             return Task.FromResult<ActionResult<List<StudentDTO>>>(Ok(studentDTOs));
         }
 
         [HttpGet("{id}")]
         public Task<ActionResult<StudentDTO>> GetStudentById(int id)
         {
-            var students = StudentQueries.GetAllStudent(context.Students.AsQueryable());
-            var student = students.Where(s => s.Id == id).FirstOrDefault();
+            var student = StudentQueries.GetStudentById(context.Students.AsQueryable(), id);
             if (student == null)
             {
                 return Task.FromResult<ActionResult<StudentDTO>>(NotFound());
             }
-            var studentDTO = new StudentDTO
-            {
-                Id = student.Id,
-                FirstName = student.FirstName,
-                LastName = student.LastName,
-                College = student.College,
-                Email = student.Email,
-                PhoneNumber = student.PhoneNumber,
-                IsDeleted = student.IsDeleted
-            };
+            var studentDTO = MapToStudentDTO(student);
             return Task.FromResult<ActionResult<StudentDTO>>(Ok(studentDTO));
+        }
+
+        [HttpGet("{fName}/{lName}/name")]
+        public Task<ActionResult<List<StudentDTO>>> GetStudentByName(string fName, string lName)
+        {
+            var students = StudentQueries.GetStudentWithName(context.Students.AsQueryable(), fName, lName);
+            if (students == null)
+            {
+                return Task.FromResult<ActionResult<List<StudentDTO>>>(NotFound());
+            }
+            var studentDTOs = MapToStudentsDTO(students);
+            return Task.FromResult<ActionResult<List<StudentDTO>>>(Ok(studentDTOs));
+        }
+
+        [HttpGet("{email}/email")]
+        public Task<ActionResult<StudentDTO>> GetStudentByEmail(string email)
+        {
+            var student = StudentQueries.GetStudentWithEmail(context.Students.AsQueryable(), email);
+            if (student == null)
+            {
+                return Task.FromResult<ActionResult<StudentDTO>>(NotFound());
+            }
+            var studentDTOs = MapToStudentDTO(student);
+            return Task.FromResult<ActionResult<StudentDTO>>(Ok(studentDTOs));
+        }
+
+        [HttpGet("{phone}/phone")]
+        public Task<ActionResult<StudentDTO>> GetStudentByPhone(string phone)
+        {
+            var student = StudentQueries.GetStudentWithPhone(context.Students.AsQueryable(), phone);
+            if (student == null)
+            {
+                return Task.FromResult<ActionResult<StudentDTO>>(NotFound());
+            }
+            var studentDTOs = MapToStudentDTO(student);
+            return Task.FromResult<ActionResult<StudentDTO>>(Ok(studentDTOs));
+        }
+
+        [HttpGet("college")]
+        public IActionResult GetStudentByCollege(string? college)
+        {
+            var students = StudentQueries.GetStudentWithCollege(context.Students.AsQueryable(), college);
+            var studentDTOs = MapToStudentsDTO(students);
+
+            if (!studentDTOs.Any())
+                return NotFound("No students found for this college");
+            return Ok(studentDTOs);
         }
 
         [HttpPost]
@@ -80,39 +110,76 @@ namespace ProjectApi.Controllers
             return NoContent();
         }
 
-        [HttpPut("{id}/firstname")]
-        public async Task<ActionResult> UpdateFirstName(int id, StudentDTO studentDTO)
+        [HttpPost("{id}/restore")]
+        public async Task<ActionResult> Restore(int id)
         {
-            await _studentService.UpdateStudentFirstName(id, studentDTO.FirstName);
+            await _studentService.RestoreStudent(id);
+            return NoContent();
+        }
+
+
+        [HttpPut("{id}/firstname")]
+        public async Task<ActionResult> UpdateFirstName(int id, [FromBody] string fName)
+        {
+            await _studentService.UpdateStudentFirstName(id, fName);
             return NoContent();
         }
 
         [HttpPut("{id}/lastname")]
-        public async Task<ActionResult> UpdateLastName(int id, StudentDTO studentDTO)
+        public async Task<ActionResult> UpdateLastName(int id, [FromBody] string lName)
         {
-            await _studentService.UpdateStudentLastName(id, studentDTO.LastName);
+            await _studentService.UpdateStudentLastName(id, lName);
             return NoContent();
         }
 
         [HttpPut("{id}/email")]
-        public async Task<ActionResult> UpdateEmail(int id, StudentDTO studentDTO)
+        public async Task<ActionResult> UpdateEmail(int id, [FromBody] string email)
         {
-            await _studentService.UpdateStudentEmail(id, studentDTO.Email);
+            await _studentService.UpdateStudentEmail(id, email);
             return NoContent();
         }
 
         [HttpPut("{id}/college")]
-        public async Task<ActionResult> UpdateCollege(int id, StudentDTO studentDTO)
+        public async Task<ActionResult> UpdateCollege(int id, [FromBody] string? college)
         {
-            await _studentService.UpdateStudentCollege(id, studentDTO.College);
+            await _studentService.UpdateStudentCollege(id, college);
             return NoContent();
         }
 
         [HttpPut("{id}/phone")]
-        public async Task<ActionResult> UpdatePhone(int id, StudentDTO studentDTO)
+        public async Task<ActionResult> UpdatePhone(int id, [FromBody] string phone)
         {
-            await _studentService.UpdateStudentPhoneNumber(id, studentDTO.PhoneNumber);
+            await _studentService.UpdateStudentPhoneNumber(id, phone);
             return NoContent();
+        }
+
+
+        private StudentDTO MapToStudentDTO(Student student)
+        {
+            return new StudentDTO
+            {
+                Id = student.Id,
+                FirstName = student.FirstName,
+                LastName = student.LastName,
+                Email = student.Email,
+                PhoneNumber = student.PhoneNumber,
+                College = student.College,
+                IsDeleted = student.IsDeleted
+            };
+        }
+        private static List<StudentDTO> MapToStudentsDTO(IEnumerable<Student> students)
+        {
+            var studentDto = students.Select(c => new StudentDTO
+            {
+                Id = c.Id,
+                FirstName = c.FirstName,
+                LastName = c.LastName,
+                Email = c.Email,
+                PhoneNumber = c.PhoneNumber,
+                College = c.College,
+                IsDeleted = c.IsDeleted,
+            }).ToList();
+            return studentDto;
         }
     }
 }

@@ -4,7 +4,7 @@ namespace Project.Interfaces.ServiceInterface
 {
     internal interface ICourseRepository
     {
-        Task AddCourse(string name, string? description, int totalHours, int sessionDuration, int capacity, CourseLevel courseLevel);
+        Task<int> AddCourse(string name, string? description, int totalHours, int sessionDuration, int capacity, CourseLevel courseLevel);
 
         Task UpdateCourseName(int id, string name);
 

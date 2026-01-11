@@ -78,7 +78,7 @@ namespace Project.Entities
             if (capacity <= 0)
                 throw new ArgumentException("Capacity must be greater than zero");
 
-            if (Enrollments.Count > capacity)
+            if (Enrollments.Count(e => e.Status != EnrollmentStatus.DROPPED) > capacity)
                 throw new InvalidOperationException(
                     "Capacity cannot be less than current enrollments");
 
@@ -95,21 +95,13 @@ namespace Project.Entities
             if (enrollment == null)
                 throw new ArgumentNullException(nameof(enrollment));
 
-            if (Enrollments.Count >= Capacity)
+            if (Enrollments.Count(x => x.Status != EnrollmentStatus.DROPPED) >= Capacity)
                 throw new InvalidOperationException("Course is full");
 
-            if (Enrollments.Any(e => e.StudentId == enrollment.StudentId))
+            if (Enrollments.Any(e => e.StudentId == enrollment.StudentId && e.Status != EnrollmentStatus.DROPPED))
                 throw new InvalidOperationException("Student already enrolled");
 
             Enrollments.Add(enrollment);
-        }
-
-        public void RemoveCourseEnrollment(Enrollment enrollment)
-        {
-            if (enrollment == null)
-                throw new ArgumentNullException(nameof(enrollment));
-
-                Enrollments.Remove(enrollment);
         }
         public void AssignInstructor(Instructor instructor)
         {

@@ -1,15 +1,14 @@
-﻿using ConsoleApp.ConsoleHelper.HelperMenus;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.ConsoleHelper.HelperMenus;
 using Project.Data;
-using Project.Service;
 
 namespace ConsoleApp.ConsoleHelper
 {
     public static class CoursesMenu
     {
-        public static async Task DisplayCoursesMenu(AppDbContext context)
+        public static async Task DisplayCoursesMenu(CourseApiService courseApiService)
         {
-            var courseService = new CourseService(context);
-            var helperCoursesMenu = new HelperCoursesMenu(courseService);
+            var helperCoursesMenu = new HelperCoursesMenu(courseApiService);
             while (true)
             {
                 Console.Clear();
@@ -18,7 +17,8 @@ namespace ConsoleApp.ConsoleHelper
                 Console.WriteLine("2. View Courses");
                 Console.WriteLine("3. Update Course");
                 Console.WriteLine("4. Delete Course");
-                Console.WriteLine("5. Back to Main Menu");
+                Console.WriteLine("5. Restore Course");
+                Console.WriteLine("0. Back to Main Menu");
                 Console.Write("Select an option: ");
                 int choice;
                 while(int.TryParse(Console.ReadLine(), out choice) == false)
@@ -32,7 +32,7 @@ namespace ConsoleApp.ConsoleHelper
                         await helperCoursesMenu.AddCourse();
                         break;
                     case 2:
-                        helperCoursesMenu.ViewCourses(context);
+                        await helperCoursesMenu.ViewCourses();
                         break;
                     case 3:
                         await helperCoursesMenu.UpdateCourse();
@@ -41,6 +41,9 @@ namespace ConsoleApp.ConsoleHelper
                         await helperCoursesMenu.RemoveCourse();
                         break;
                     case 5:
+                        await helperCoursesMenu.RestoreCourse();
+                        break;
+                    case 0:
                         return;
                     default:
                         Console.WriteLine("Invalid choice. Please try again.");

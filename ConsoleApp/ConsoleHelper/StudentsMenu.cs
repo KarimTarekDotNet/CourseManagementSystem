@@ -1,4 +1,5 @@
-﻿using ConsoleApp.ConsoleHelper.HelperMenus;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.ConsoleHelper.HelperMenus;
 using Project.Data;
 using Project.Service;
 
@@ -6,10 +7,9 @@ namespace ConsoleApp.ConsoleHelper
 {
     public static class StudentsMenu
     {
-        internal static async Task DisplayStudentsMenu(AppDbContext context)
+        internal static async Task DisplayStudentsMenu(StudentApiService studentApiService)
         {
-            var studentService = new StudentService(context);
-            var helperStudentMenu = new HelperStudentMenu(studentService);
+            var helperStudentMenu = new HelperStudentMenu(studentApiService);
 
             while (true)
             {
@@ -19,7 +19,8 @@ namespace ConsoleApp.ConsoleHelper
                 Console.WriteLine("2. View Students");
                 Console.WriteLine("3. Update Student");
                 Console.WriteLine("4. Delete Student");
-                Console.WriteLine("5. Back to Main Menu");
+                Console.WriteLine("5. Restore Student");
+                Console.WriteLine("0. Back to Main Menu");
                 Console.Write("Select an option: ");
 
                 int choice;
@@ -36,7 +37,7 @@ namespace ConsoleApp.ConsoleHelper
                         break;
 
                     case 2:
-                        helperStudentMenu.ViewStudents(context);
+                        await helperStudentMenu.ViewStudents();
                         break;
 
                     case 3:
@@ -48,6 +49,9 @@ namespace ConsoleApp.ConsoleHelper
                         break;
 
                     case 5:
+                        await helperStudentMenu.RestoreStudent();
+                        break;
+                    case 0:
                         return;
 
                     default:

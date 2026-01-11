@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project.Data;
-using Project.Service;
+using Project.Entities;
 using Project.Queries;
+using Project.Service;
 using ProjectApi.DTOs;
 
 namespace ProjectApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class InstructorController : ControllerBase
     {
         private readonly InstructorService _instructorService;
@@ -22,27 +25,13 @@ namespace ProjectApi.Controllers
 
         // GET: api/instructor
         [HttpGet]
-        public async Task<IActionResult> GetAllInstructors()
+        public IActionResult GetAllInstructors()
         {
-            try
-            {
-                var instructors = InstructorQueries.GetAllInstructors(context.Instructors.AsQueryable());
-                var dtos = await instructors.Select(i => new InstructorDTO
-                {
-                    Id = i.Id,
-                    FirstName = i.FirstName,
-                    LastName = i.LastName,
-                    Department = i.Department,
-                    Email = i.Email,
-                    PhoneNumber = i.PhoneNumber
-                }).ToListAsync();
+            var instructors = InstructorQueries
+                .GetAllInstructors(context.Instructors.AsQueryable());
 
-                return Ok(dtos);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var dtos = MapToInstructorsDTO(instructors);
+            return Ok(dtos);
         }
 
         // GET: api/instructor/{id}
@@ -56,15 +45,7 @@ namespace ProjectApi.Controllers
 
                 if (instructor == null) return NotFound("Instructor not found");
 
-                var dto = new InstructorDTO
-                {
-                    Id = instructor.Id,
-                    FirstName = instructor.FirstName,
-                    LastName = instructor.LastName,
-                    Department = instructor.Department,
-                    Email = instructor.Email,
-                    PhoneNumber = instructor.PhoneNumber
-                };
+                var dto = MapToInstructorDTO(instructor);
 
                 return Ok(dto);
             }
@@ -76,33 +57,33 @@ namespace ProjectApi.Controllers
 
         // POST: api/instructor
         [HttpPost]
-        public async Task<IActionResult> AddInstructor(InstructorDTO dto)
+        public async Task<ActionResult<InstructorDTO>> AddInstructor(InstructorDTO dto)
         {
-            try
-            {
-                await _instructorService.AddInstructor(
-                    dto.FirstName,
-                    dto.LastName,
-                    dto.Department,
-                    dto.Email,
-                    dto.PhoneNumber
-                );
+            int id = await _instructorService.AddInstructor(
+                dto.FirstName,
+                dto.LastName,
+                dto.Department,
+                dto.Email,
+                dto.PhoneNumber
+            );
 
-                return Ok("Instructor added successfully");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            return CreatedAtAction(nameof(GetInstructorById), new { Id = id }, dto);
         }
 
         // DELETE: api/instructor/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoveInstructor(int id)
         {
+            await _instructorService.RemoveInstructor(id);
+            return NoContent();
+        }
+
+        [HttpPost("{id}/restore")]
+        public async Task<IActionResult> RestoreInstructor(int id)
+        {
             try
             {
-                await _instructorService.RemoveInstructor(id);
+                await _instructorService.RestoreInstructor(id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -113,11 +94,11 @@ namespace ProjectApi.Controllers
 
         // PUT: api/instructor/{id}/firstname
         [HttpPut("{id}/firstname")]
-        public async Task<IActionResult> UpdateFirstName(int id, InstructorDTO dto)
+        public async Task<IActionResult> UpdateFirstName(int id, [FromBody] string fName)
         {
             try
             {
-                await _instructorService.UpdateInstructorFirstName(id, dto.FirstName);
+                await _instructorService.UpdateInstructorFirstName(id, fName);
                 return NoContent();
             }
             catch (Exception ex)
@@ -128,11 +109,11 @@ namespace ProjectApi.Controllers
 
         // PUT: api/instructor/{id}/lastname
         [HttpPut("{id}/lastname")]
-        public async Task<IActionResult> UpdateLastName(int id, InstructorDTO dto)
+        public async Task<IActionResult> UpdateLastName(int id, [FromBody] string lName)
         {
             try
             {
-                await _instructorService.UpdateInstructorLastName(id, dto.LastName);
+                await _instructorService.UpdateInstructorLastName(id, lName);
                 return NoContent();
             }
             catch (Exception ex)
@@ -143,11 +124,11 @@ namespace ProjectApi.Controllers
 
         // PUT: api/instructor/{id}/email
         [HttpPut("{id}/email")]
-        public async Task<IActionResult> UpdateEmail(int id, InstructorDTO dto)
+        public async Task<IActionResult> UpdateEmail(int id, [FromBody] string email)
         {
             try
             {
-                await _instructorService.UpdateInstructorEmail(id, dto.Email);
+                await _instructorService.UpdateInstructorEmail(id, email);
                 return NoContent();
             }
             catch (Exception ex)
@@ -158,11 +139,11 @@ namespace ProjectApi.Controllers
 
         // PUT: api/instructor/{id}/department
         [HttpPut("{id}/department")]
-        public async Task<IActionResult> UpdateDepartment(int id, InstructorDTO dto)
+        public async Task<IActionResult> UpdateDepartment(int id, [FromBody] string? department)
         {
             try
             {
-                await _instructorService.UpdateInstructorDepartment(id, dto.Department);
+                await _instructorService.UpdateInstructorDepartment(id, department);
                 return NoContent();
             }
             catch (Exception ex)
@@ -173,11 +154,11 @@ namespace ProjectApi.Controllers
 
         // PUT: api/instructor/{id}/phone
         [HttpPut("{id}/phone")]
-        public async Task<IActionResult> UpdatePhoneNumber(int id, InstructorDTO dto)
+        public async Task<IActionResult> UpdatePhoneNumber(int id, [FromBody] string phone)
         {
             try
             {
-                await _instructorService.UpdateInstructorPhoneNumber(id, dto.PhoneNumber);
+                await _instructorService.UpdateInstructorPhoneNumber(id, phone);
                 return NoContent();
             }
             catch (Exception ex)
@@ -217,46 +198,26 @@ namespace ProjectApi.Controllers
         }
 
         // GET: api/instructor/department/{department}
-        [HttpGet("department/{department}")]
-        public async Task<IActionResult> GetInstructorsByDepartment(string department)
+        [HttpGet("department")]
+        public IActionResult GetInstructorsByDepartment(string? department)
         {
-            try
-            {
-                var instructorsQuery = InstructorQueries.GetInstructorsByDepartment(context.Instructors.AsQueryable(), department);
-                var dtos = await instructorsQuery.Select(i => new InstructorDTO
-                {
-                    Id = i.Id,
-                    FirstName = i.FirstName,
-                    LastName = i.LastName,
-                    Department = i.Department,
-                    Email = i.Email,
-                    PhoneNumber = i.PhoneNumber
-                }).ToListAsync();
+            var instructorsQuery = InstructorQueries.GetInstructorsByDepartment(context.Instructors.AsQueryable(), department);
+            var dtos = MapToInstructorsDTO(instructorsQuery);
 
-                return Ok(dtos);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            if(!dtos.Any())
+                return NotFound("No instructors found for this department");
+
+            return Ok(dtos);
         }
 
         // GET: api/instructor/with-courses
         [HttpGet("with-courses")]
-        public async Task<IActionResult> GetInstructorsWithCourses()
+        public IActionResult GetInstructorsWithCourses()
         {
             try
             {
                 var instructorsQuery = InstructorQueries.GetInstructorsWithAnyCourses(context.Instructors.AsQueryable());
-                var dtos = await instructorsQuery.Select(i => new InstructorDTO
-                {
-                    Id = i.Id,
-                    FirstName = i.FirstName,
-                    LastName = i.LastName,
-                    Department = i.Department,
-                    Email = i.Email,
-                    PhoneNumber = i.PhoneNumber
-                }).ToListAsync();
+                var dtos = MapToInstructorsDTO(instructorsQuery);
 
                 return Ok(dtos);
             }
@@ -268,20 +229,12 @@ namespace ProjectApi.Controllers
 
         // GET: api/instructor/without-courses
         [HttpGet("without-courses")]
-        public async Task<IActionResult> GetInstructorsWithoutCourses()
+        public IActionResult GetInstructorsWithoutCourses()
         {
             try
             {
                 var instructorsQuery = InstructorQueries.GetInstructorsWithoutCourses(context.Instructors.AsQueryable());
-                var dtos = await instructorsQuery.Select(i => new InstructorDTO
-                {
-                    Id = i.Id,
-                    FirstName = i.FirstName,
-                    LastName = i.LastName,
-                    Department = i.Department,
-                    Email = i.Email,
-                    PhoneNumber = i.PhoneNumber
-                }).ToListAsync();
+                var dtos = MapToInstructorsDTO(instructorsQuery);
 
                 return Ok(dtos);
             }
@@ -289,6 +242,34 @@ namespace ProjectApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        private InstructorDTO MapToInstructorDTO(Instructor instructor)
+        {
+            return new InstructorDTO
+            {
+                Id = instructor.Id,
+                FirstName = instructor.FirstName,
+                LastName = instructor.LastName,
+                Email = instructor.Email,
+                PhoneNumber = instructor.PhoneNumber,
+                Department = instructor.Department,
+                IsDeleted = instructor.IsDeleted,
+            };
+        }
+        private static List<InstructorDTO> MapToInstructorsDTO(IQueryable<Instructor> instructorDTOs)
+        {
+            var instructors = instructorDTOs.Select(c => new InstructorDTO
+            {
+                Id = c.Id,
+                FirstName = c.FirstName,
+                LastName = c.LastName,
+                Email = c.Email,
+                PhoneNumber = c.PhoneNumber,
+                Department = c.Department,
+                IsDeleted = c.IsDeleted,
+            }).ToList();
+            return instructors;
         }
     }
 }

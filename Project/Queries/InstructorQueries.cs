@@ -5,21 +5,17 @@ namespace Project.Queries
 {
     public static class InstructorQueries
     {
-        private static void EnsureNotEmpty(IEnumerable<Instructor> instructors)
+        private static void EnsureNotNull(IQueryable<Instructor> instructors)
         {
             if (instructors == null)
                 throw new ArgumentNullException(nameof(instructors));
-
-            if (!instructors.Any())
-            {
-                throw new Exception("The instructors collection is empty.");
-            }
         }
 
         public static IQueryable<Instructor> GetAllInstructors(
             IQueryable<Instructor> instructors)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
+
             return instructors;
         }
 
@@ -28,34 +24,28 @@ namespace Project.Queries
             string firstName,
             string lastName)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
 
             if (string.IsNullOrWhiteSpace(firstName))
-                throw new ArgumentException(
-                    "First name cannot be empty.",
-                    nameof(firstName));
+                throw new ArgumentException(nameof(firstName));
 
             if (string.IsNullOrWhiteSpace(lastName))
-                throw new ArgumentException(
-                    "Last name cannot be empty.",
-                    nameof(lastName));
+                throw new ArgumentException(nameof(lastName));
 
             return instructors
                 .Where(i =>
-                    EF.Functions.Like(i.FirstName, firstName) &&
-                    EF.Functions.Like(i.LastName, lastName));
+                    EF.Functions.Like(i.FirstName, $"%{firstName}%") &&
+                    EF.Functions.Like(i.LastName, $"%{lastName}%"));
         }
 
         public static IQueryable<Instructor> GetInstructorByEmail(
             IQueryable<Instructor> instructors,
             string email)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
 
             if (string.IsNullOrWhiteSpace(email))
-                throw new ArgumentException(
-                    "Email cannot be empty.",
-                    nameof(email));
+                throw new ArgumentException(nameof(email));
 
             return instructors
                 .Where(i => EF.Functions.Like(i.Email, email));
@@ -63,35 +53,36 @@ namespace Project.Queries
 
         public static IQueryable<Instructor> GetInstructorsByDepartment(
             IQueryable<Instructor> instructors,
-            string department)
+            string? department)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
 
             if (string.IsNullOrWhiteSpace(department))
-                throw new ArgumentException(
-                    "Department cannot be empty.",
-                    nameof(department));
+            {
+                return instructors
+                    .Where(i => i.Department == null);
+            }
 
             return instructors
-                .Where(i => EF.Functions.Like(i.Department ,department));
+                .Where(i => EF.Functions.Like(i.Department!, $"%{department}%"));
         }
 
         public static IQueryable<Instructor> GetInstructorsWithAnyCourses(
             IQueryable<Instructor> instructors)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
 
             return instructors
-                .Where(i => i.Courses.Any());
+                .Where(i => i.Courses!.Any());
         }
 
         public static IQueryable<Instructor> GetInstructorsWithoutCourses(
             IQueryable<Instructor> instructors)
         {
-            EnsureNotEmpty(instructors);
+            EnsureNotNull(instructors);
 
             return instructors
-                .Where(i => !i.Courses.Any());
+                .Where(i => !i.Courses!.Any());
         }
     }
 }

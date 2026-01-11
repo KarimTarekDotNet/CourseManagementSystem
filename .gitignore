@@ -57,6 +57,6 @@ x86/
 *.ldf
 *.ndf
 
+**/appsettings.project.json
+**/appsettings.App.json
 **/appsettings.json
-**/appsettings.Development.json
-**/appsettings.Production.json

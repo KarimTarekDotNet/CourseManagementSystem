@@ -48,7 +48,6 @@ namespace Project.Checks
 
             if (!Regex.IsMatch(email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
                 throw new ArgumentException("Invalid email format");
-
             return email;
         }
 

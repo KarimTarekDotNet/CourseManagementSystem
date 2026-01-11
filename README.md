@@ -33,9 +33,11 @@ A RESTful service that enables communication with the system via HTTP:
 - **Controllers:** Handling API endpoints for all entities
 - **DTOs (Data Transfer Objects):** Ensuring secure and efficient data exposure
 - **Dependency Injection:** Managing service lifetimes for optimal performance
+- **JWT:** Using authentication and authorization
 
 ### 3. ConsoleApp
 A command-line interface (CLI) for manual management, featuring:
+- login layer (only Admins)
 - Structured menus for all entities
 - Direct interaction with the service layer
 

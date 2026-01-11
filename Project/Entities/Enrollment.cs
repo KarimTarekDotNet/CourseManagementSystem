@@ -33,10 +33,18 @@ public class Enrollment
 
     public void UpdateStatus(EnrollmentStatus status)
     {
-        if (Status != EnrollmentStatus.ACTIVE)
+        if (Status == EnrollmentStatus.COMPLETED)
             throw new InvalidOperationException($"Cannot change enrollment status from {Status} to {status}");
 
         Status = status;
-        EndEnrollmentDate = DateTime.UtcNow;
+        StartEnrollmentDate = DateTime.UtcNow;
+    }
+    public void Restore(Course course)
+    {
+        if (Status != EnrollmentStatus.DROPPED)
+            throw new InvalidOperationException("Only dropped enrollments can be restored");
+
+        Status = EnrollmentStatus.ACTIVE;
+        EndEnrollmentDate = StartEnrollmentDate.AddDays(course.CalculateNumberOfSessions());
     }
 }

@@ -1,17 +1,15 @@
-﻿using Project.Data;
-using Project.Entities;
-using Project.Queries;
-using Project.Service;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.DTOs;
 
 namespace ConsoleApp.ConsoleHelper.HelperMenus
 {
     public class HelperInstructorMenu
     {
-        private readonly InstructorService _instructorService;
+        private readonly InstructorApiService _instructorApi;
 
-        public HelperInstructorMenu(InstructorService instructorService)
+        public HelperInstructorMenu(InstructorApiService instructorApi)
         {
-            _instructorService = instructorService;
+            _instructorApi = instructorApi;
         }
 
         public async Task AddInstructor()
@@ -19,19 +17,34 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
             try
             {
                 Console.WriteLine("=== Add New Instructor ===");
-                Console.Write("Enter Instructor First name: ");
-                string fName = Console.ReadLine() ?? string.Empty;
-                Console.Write("Enter Instructor Last name: ");
-                string lName = Console.ReadLine() ?? string.Empty;
-                Console.Write("Enter Instructor Department (optional): ");
+
+                Console.Write("First Name: ");
+                string firstName = Console.ReadLine() ?? string.Empty;
+
+                Console.Write("Last Name: ");
+                string lastName = Console.ReadLine() ?? string.Empty;
+
+                Console.Write("Department (optional): ");
                 string? department = Console.ReadLine();
-                Console.Write("Enter Instructor Email: ");
+
+                Console.Write("Email: ");
                 string email = Console.ReadLine() ?? string.Empty;
-                Console.Write("Enter Instructor Phone: ");
+
+                Console.Write("Phone: ");
                 string phone = Console.ReadLine() ?? string.Empty;
-                await _instructorService.AddInstructor(fName, lName, department, email, phone);
-                Console.WriteLine($"{fName + " " + lName} added successfully.");
-                Console.WriteLine($"if you want your Id please search in view instructors -> view by name");
+
+                var dto = new InstructorDTO
+                {
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Department = string.IsNullOrWhiteSpace(department) ? null : department,
+                    Email = email,
+                    PhoneNumber = phone
+                };
+
+                await _instructorApi.Create(dto);
+
+                Console.WriteLine("Instructor added successfully.");
             }
             catch (Exception ex)
             {
@@ -43,9 +56,23 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
         {
             try
             {
-                Console.WriteLine("=== Delete Instructor ===");
-                int instructorId = ReadIntInput("Enter Instructor Id: ");
-                await _instructorService.RemoveInstructor(instructorId);
+                int id = ReadIntInput("Enter Instructor ID: ");
+                await _instructorApi.Delete(id);
+                Console.WriteLine("Instructor deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+        }
+
+        public async Task RestoreInstructor()
+        {
+            try
+            {
+                int id = ReadIntInput("Enter Instructor ID: ");
+                await _instructorApi.Restore(id);
+                Console.WriteLine("Instructor restored successfully.");
             }
             catch (Exception ex)
             {
@@ -55,160 +82,137 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
 
         public async Task UpdateInstructor()
         {
-            try
+            int id = ReadIntInput("Enter Instructor ID: ");
+            while (true)
             {
-                while (true)
+                Console.WriteLine("=== Update Instructor ===");
+                Console.WriteLine("1. First Name");
+                Console.WriteLine("2. Last Name");
+                Console.WriteLine("3. Email");
+                Console.WriteLine("4. Phone");
+                Console.WriteLine("5. Department");
+                Console.WriteLine("0. Back");
+
+                int choice = ReadIntInput("Select option: ");
+                if (choice == 0) return;
+
+
+                try
                 {
-                    Console.WriteLine("=== Update Instructor ===");
-                    Console.WriteLine("1. update first name");
-                    Console.WriteLine("2. update last name");
-                    Console.WriteLine("3. update email");
-                    Console.WriteLine("4. update phone");
-                    Console.WriteLine("5. update department");
-                    Console.WriteLine("0. return menu");
-                    int choice = ReadIntInput("Select an option: ");
-                    int instructorId = ReadIntInput("Enter Instructor Id: ");
                     switch (choice)
                     {
                         case 1:
-                            Console.Write("Enter new First name: ");
-                            string fName = Console.ReadLine() ?? string.Empty;
-                            await _instructorService.UpdateInstructorFirstName(instructorId, fName);
-                            break;
-                        case 2:
-                            Console.Write("Enter new last name: ");
-                            string lName = Console.ReadLine() ?? string.Empty;
-                            await _instructorService.UpdateInstructorLastName(instructorId, lName);
-                            break;
-                        case 3:
-                            Console.Write("Enter new email: ");
-                            string email = Console.ReadLine() ?? string.Empty;
-                            await _instructorService.UpdateInstructorEmail(instructorId, email);
-                            break;
-                        case 4:
-                            Console.Write("Enter new phone number: ");
-                            string phone = Console.ReadLine() ?? string.Empty;
-                            await _instructorService.UpdateInstructorPhoneNumber(instructorId, phone);
-                            break;
-                        case 5:
-                            Console.Write("Enter new department: ");
-                            string department = Console.ReadLine() ?? string.Empty;
-                            await _instructorService.UpdateInstructorDepartment(instructorId, department);
-                            break;
-                        case 0:
-                            return;
-
-                        default:
-                            break;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-        }
-
-        public void ViewInstructors(AppDbContext context)
-        {
-            try
-            {
-                while (true)
-                {
-                    Console.WriteLine("=== View Instructors ===");
-                    Console.WriteLine("1. View all instructors");
-                    Console.WriteLine("2. View by name");
-                    Console.WriteLine("3. View by email");
-                    Console.WriteLine("4. View by department");
-                    Console.WriteLine("5. View instructors with courses");
-                    Console.WriteLine("6. View instructors without courses");
-                    Console.WriteLine("0. Return menu");
-
-                    int choice = ReadIntInput("Select an option: ");
-
-                    IQueryable<Instructor> query = context.Instructors.AsQueryable();
-                    List<Instructor> instructors;
-
-                    switch (choice)
-                    {
-                        case 1:
-                            instructors = InstructorQueries
-                                .GetAllInstructors(query)
-                                .ToList();
-
-                            forLoop(instructors);
+                            Console.Write("New First Name: ");
+                            await _instructorApi.UpdateFirstName(id, Console.ReadLine() ?? "");
                             break;
 
                         case 2:
-                            Console.Write("Enter First name: ");
-                            string fName = Console.ReadLine() ?? string.Empty;
-                            Console.Write("Enter Last name: ");
-                            string lName = Console.ReadLine() ?? string.Empty;
-
-                            instructors = InstructorQueries
-                                .GetInstructorByName(query, fName, lName)
-                                .ToList();
-                            forLoop(instructors);
+                            Console.Write("New Last Name: ");
+                            await _instructorApi.UpdateLastName(id, Console.ReadLine() ?? "");
                             break;
 
                         case 3:
-                            Console.Write("Enter Email: ");
-                            string email = Console.ReadLine() ?? string.Empty;
-
-                            instructors = InstructorQueries
-                                .GetInstructorByEmail(query, email)
-                                .ToList();
-                            forLoop(instructors);
+                            Console.Write("New Email: ");
+                            await _instructorApi.UpdateLastEmail(id, Console.ReadLine() ?? "");
                             break;
 
                         case 4:
-                            Console.Write("Enter Department: ");
-                            string department = Console.ReadLine() ?? string.Empty;
-
-                            instructors = InstructorQueries
-                                .GetInstructorsByDepartment(query, department)
-                                .ToList();
-                            forLoop(instructors);
+                            Console.Write("New Phone: ");
+                            await _instructorApi.UpdatePhone(id, Console.ReadLine() ?? "");
                             break;
 
                         case 5:
-                            instructors = InstructorQueries
-                                .GetInstructorsWithAnyCourses(query)
-                                .ToList();
-                            forLoop(instructors);
+                            Console.Write("New Department: ");
+                            string? dept = Console.ReadLine();
+                            await _instructorApi.UpdateDepartment(id, dept);
                             break;
-
-                        case 6:
-                            instructors = InstructorQueries
-                                .GetInstructorsWithoutCourses(query)
-                                .ToList();
-                            forLoop(instructors);
-                            break;
-
-                        case 0:
-                            return;
 
                         default:
                             Console.WriteLine("Invalid choice.");
                             break;
                     }
+
+                    Console.WriteLine("Instructor updated successfully.");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
             }
         }
 
+
+        public async Task ViewInstructors()
+        {
+            while (true)
+            {
+                Console.WriteLine("=== View Instructors ===");
+                Console.WriteLine("1. View by Department");
+                Console.WriteLine("2. With Courses");
+                Console.WriteLine("3. Without Courses");
+                Console.WriteLine("0. Back");
+
+                int choice = ReadIntInput("Select option: ");
+                if (choice == 0) return;
+
+                try
+                {
+                    switch (choice)
+                    {
+                        case 1:
+                            await ViewByDepartment();
+                            break;
+
+                        case 2:
+                            await GetWithCourses();
+                            break;
+
+                        case 3:
+                            await GetWithoutCourses();
+                            break;
+
+                        case 0:
+                            return;
+
+                        default:
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task ViewByDepartment()
+        {
+            Console.Write("Department (leave empty for all): ");
+            string? department = Console.ReadLine();
+            var instructors = await _instructorApi.GetByDepartment(department);
+            PrintInstructors(instructors);
+        }
+        private async Task GetWithCourses()
+        {
+            var Instructors = await _instructorApi.GetWithCourses();
+            PrintInstructors(Instructors);
+        }
+        private async Task GetWithoutCourses()
+        {
+            var Instructors = await _instructorApi.GetWithoutCourses();
+            PrintInstructors(Instructors);
+        }
+
+
         public async Task AssignCourse()
         {
-            int instructorId = ReadIntInput("Enter Instructor ID: ");
-            int courseId = ReadIntInput("Enter Course ID: ");
-
             try
             {
-                await _instructorService.AssignCourse(instructorId, courseId);
-                Console.WriteLine("Course assigned successfully!");
+                int instructorId = ReadIntInput("Instructor ID: ");
+                int courseId = ReadIntInput("Course ID: ");
+
+                await _instructorApi.AssignCourse(instructorId, courseId);
+                Console.WriteLine("Course assigned successfully.");
             }
             catch (Exception ex)
             {
@@ -218,13 +222,13 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
 
         public async Task RemoveCourse()
         {
-            int instructorId = ReadIntInput("Enter Instructor ID: ");
-            int courseId = ReadIntInput("Enter Course ID: ");
-
             try
             {
-                await _instructorService.RemoveCourse(instructorId, courseId);
-                Console.WriteLine("Course removed successfully!");
+                int instructorId = ReadIntInput("Instructor ID: ");
+                int courseId = ReadIntInput("Course ID: ");
+
+                await _instructorApi.DropCourse(instructorId, courseId);
+                Console.WriteLine("Course removed successfully.");
             }
             catch (Exception ex)
             {
@@ -234,28 +238,49 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
 
         private int ReadIntInput(string prompt)
         {
-            int value;
             while (true)
             {
                 Console.Write(prompt);
-                if (int.TryParse(Console.ReadLine(), out value))
-                {
+                if (int.TryParse(Console.ReadLine(), out int value))
                     return value;
-                }
-                Console.WriteLine("Invalid input. Please enter a valid number.");
+
+                Console.WriteLine("Invalid number, try again.");
             }
         }
 
-        private void forLoop(List<Instructor> collection)
+        private void PrintInstructors(List<InstructorDTO> instructorDTOs, int pageSize = 10)
         {
-            if(!collection.Any())
+            if (instructorDTOs == null || instructorDTOs.Count == 0)
             {
-                Console.WriteLine("No instructors found.");
+                Console.WriteLine("No students found.");
                 return;
             }
-            foreach (var item in collection)
+            int currentPage = 0;
+            int totalPages = (int)Math.Ceiling(instructorDTOs.Count / (double)pageSize);
+            while (true)
             {
-                Console.WriteLine(item);
+                Console.Clear();
+                Console.WriteLine($"Page {currentPage + 1}/{totalPages}");
+                Console.WriteLine("-------------------------");
+                var pageItems = instructorDTOs.Skip(currentPage * pageSize).Take(pageSize).ToList();
+
+                foreach (var s in pageItems)
+                {
+                    Console.WriteLine(s);
+                }
+
+                Console.WriteLine("\nUse Left/Right arrows to navigate, Esc to exit.");
+
+                var key = Console.ReadKey(true).Key;
+
+                if (key == ConsoleKey.RightArrow && currentPage < totalPages - 1)
+                    currentPage++;
+
+                else if (key == ConsoleKey.LeftArrow && currentPage > 0)
+                    currentPage--;
+
+                else
+                    break;
             }
         }
     }

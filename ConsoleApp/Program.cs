@@ -1,7 +1,10 @@
-﻿using ConsoleApp.ConsoleHelper;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.ConsoleHelper;
+using ConsoleApp.ConsoleHelper.HelperMenus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Project.Data;
+using ProjectApi.DTOs;
 
 namespace ConsoleApp
 {
@@ -9,48 +12,45 @@ namespace ConsoleApp
     {
         static async Task Main(string[] args)
         {
-            var config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+            var config = new ConfigurationBuilder().AddJsonFile("appsettings.App.json").Build();
             var connectionString = config.GetConnectionString("DefaultConnection");
             var oprions = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;
-            using var context = new AppDbContext(oprions);
-            while (true)
+            var login = new LoginApiService();
+
+            Console.WriteLine("=== Course Academy Management ===");
+            int tryLogin = 5;
+            while (tryLogin-- > 0)
             {
-                Console.Clear();
-                Console.WriteLine("=== Course Academy Management ===");
-                Console.WriteLine("1. Manage courses");
-                Console.WriteLine("2. Manage Students");
-                Console.WriteLine("3. Manage Enrollment");
-                Console.WriteLine("4. Manage Instrutor");
-                Console.WriteLine("0. Exit");
-                Console.Write("Select an option: ");
-                int choice;
-                while(!int.TryParse(Console.ReadLine(), out choice))
+                Console.Write("Enter username: ");
+                string username = Console.ReadLine() ?? string.Empty;
+                Console.Write("Enter Email: ");
+                string email = Console.ReadLine() ?? string.Empty;
+                Console.Write("Enter Password: ");
+                string password = PassHelper.ReadPassword();
+
+                var admin = new AdminDTO
                 {
-                    Console.WriteLine("Invalid input. Please enter a number between 0 and 4.");
-                    Console.Write("Select an option: ");
+                    Username = username,
+                    Email = email,
+                    Password = password
+                };
+                if (await login.Login(admin))
+                {
+                    Console.WriteLine("Welcome!");
+                    var courseApi = new CourseApiService(login.Token!);
+                    var enrollApi = new EnrollmentApiService(login.Token!);
+                    var studentApi = new StudentApiService(login.Token!);
+                    var instructorApi = new InstructorApiService(login.Token!);
+                    await Login.MenuAsync(instructorApi, enrollApi, studentApi, courseApi);
+                    Console.WriteLine("Press any key to continue...");
+                    Console.ReadKey();
+                    break;
                 }
-                switch (choice)
+                else
                 {
-                    case 0:
-                        Console.WriteLine("Exiting the application. Goodbye!");
-                        return;
-                    case 1:
-                        await CoursesMenu.DisplayCoursesMenu(context);
-                        break;
-                    case 2:
-                        await StudentsMenu.DisplayStudentsMenu(context);
-                        break;
-                    case 3:
-                        await EnrollmentMenu.DisplayEnrollmentMenu(context);
-                        break;
-                    case 4:
-                        await InstructorMenu.DisplayInstructorMenu(context);
-                        break;
-                    default:
-                        Console.WriteLine("Invalid choice. Please select a valid option.");
-                        break;
+                    Console.WriteLine("try Again!");  
                 }
             }
         }

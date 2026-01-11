@@ -20,6 +20,8 @@ namespace Project.Data.Configuration
                    .HasForeignKey(e => e.CourseId)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasIndex(e => new { e.CourseId, e.StudentId }).IsUnique();
+
             builder.Property(e => e.Status).HasConversion<string>().IsRequired();
 
             builder.Property(e => e.StartEnrollmentDate).IsRequired();

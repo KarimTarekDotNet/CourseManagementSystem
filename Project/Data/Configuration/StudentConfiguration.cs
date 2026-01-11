@@ -25,7 +25,6 @@ namespace Project.Data.Configuration
                 .HasDefaultValue(false)
                 .IsRequired();
 
-
             builder.HasMany(x => x.Enrollments)
                    .WithOne(e => e.Student)
                    .HasForeignKey(e => e.StudentId)

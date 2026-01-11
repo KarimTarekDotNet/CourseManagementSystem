@@ -25,7 +25,7 @@ namespace Project.Service
             return course;
         }
 
-        public async Task AddCourse(string name, string? description, int totalHours, int sessionDuration, int capacity, CourseLevel courseLevel)
+        public async Task<int> AddCourse(string name, string? description, int totalHours, int sessionDuration, int capacity, CourseLevel courseLevel)
         {
             var nameLower = name.ToLower();
             if (await context.Courses.AnyAsync(c =>
@@ -42,6 +42,7 @@ namespace Project.Service
             );
             context.Courses.Add(course);
             await context.SaveChangesAsync();
+            return course.Id;
         }
 
         public async Task DeleteCourse(int id)
@@ -59,6 +60,15 @@ namespace Project.Service
                 throw new InvalidOperationException("Cannot delete course because it has active or completed enrollments.");
 
             course.SoftDelete();
+            await context.SaveChangesAsync();
+        }
+        public async Task RestoreCourse(int id)
+        {
+            Guard.AgainstNonPositive(id);
+            var course = await context.Courses.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id && c.IsDeleted == true);
+            if (course == null)
+                throw new InvalidOperationException("Course not found");
+            course.Restore();
             await context.SaveChangesAsync();
         }
 

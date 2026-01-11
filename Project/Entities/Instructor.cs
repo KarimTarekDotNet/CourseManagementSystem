@@ -20,8 +20,10 @@ namespace Project.Entities
         public string? Department { get; private set; }
         public string Email { get; private set; }
         public string PhoneNumber { get; private set; }
+        public bool IsDeleted { get; private set; }
         public string FullName => $"{FirstName} {LastName}";
         public virtual HashSet<Course>? Courses { get; private set; } = new HashSet<Course>();
+
         override public string ToString()
         {
             return $"Id: {Id} | Name: {FullName} | Department: {Department ?? "UNKNOWN"} | Email: {Email}";
@@ -79,6 +81,16 @@ namespace Project.Entities
             course.DropInstructor(this);
 
             Courses!.Remove(course);
+        }
+
+        public void SoftDelete()
+        {
+            IsDeleted = true;
+        }
+
+        public void Restore()
+        {
+            IsDeleted = false;
         }
     }
 }

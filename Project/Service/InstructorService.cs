@@ -24,21 +24,14 @@ namespace Project.Service
             return instructor;
         }
 
-        public async Task AddInstructor(string fName, string lName, string? department, string email, string phoneNumber)
+        public async Task<int> AddInstructor(string fName, string lName, string? department, string email, string phoneNumber)
         {
-            var lowerFirstName = fName.ToLower();
-            var lowerLastName = lName.ToLower();
-            var lowerEmail = email.ToLower();
-
             if (await context.Instructors.AnyAsync(s =>
-                s.FirstName.ToLower() == lowerFirstName &&
-                s.LastName.ToLower() == lowerLastName))
-                throw new InvalidOperationException("Instructor already exists");
-
-            if (await context.Instructors.AnyAsync(s => s.Email.ToLower() == lowerEmail))
+                EF.Functions.Like(s.Email, email)) && await context.Students.AnyAsync(s => EF.Functions.Like(s.Email, email)))
                 throw new InvalidOperationException("Email already in use");
 
-            if (await context.Instructors.AnyAsync(s => s.PhoneNumber == phoneNumber))
+            if (await context.Instructors.AnyAsync(s => s.PhoneNumber == phoneNumber) &&
+                await context.Students.AnyAsync(s => s.PhoneNumber == phoneNumber))
                 throw new InvalidOperationException("Phone number already in use");
 
             var instructor = new Instructor(
@@ -48,8 +41,10 @@ namespace Project.Service
                 Guard.AgainstInvalidEmail(email),
                 Guard.AgainstInvalidPhone(phoneNumber)
             );
+
             await context.Instructors.AddAsync(instructor);
             await context.SaveChangesAsync();
+            return instructor.Id;
         }
 
         public async Task RemoveInstructor(int instructorId)
@@ -59,7 +54,16 @@ namespace Project.Service
             if (instructor.Courses!.Any())
                 throw new InvalidOperationException("Cannot delete instructor because they have assigned courses.");
 
-            context.Instructors.Remove(instructor);
+            instructor.SoftDelete();
+            await context.SaveChangesAsync();
+        }
+        public async Task RestoreInstructor(int instructorId)
+        {
+            Guard.AgainstNonPositive(instructorId);
+            var instructor = await context.Instructors.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == instructorId && c.IsDeleted == true);
+            if (instructor == null)
+                throw new InvalidOperationException("instructor not found");
+            instructor.Restore();
             await context.SaveChangesAsync();
         }
 
@@ -75,7 +79,7 @@ namespace Project.Service
         {
             Guard.AgainstInvalidEmail(email);
             var instructor = await GetInstructorById(instructorId);
-            if (await context.Instructors.AnyAsync(i => i.Id != instructorId && i.Email.ToLowerInvariant == email.ToLowerInvariant))
+            if (await context.Instructors.AnyAsync(i => i.Id != instructorId && EF.Functions.Like(i.Email, email)))
                 throw new InvalidOperationException("Email already in use by another instructor");
             instructor.UpdateEmail(email);
             await context.SaveChangesAsync();

@@ -5,114 +5,109 @@ namespace Project.Queries
 {
     public static class EnrollmentQueries
     {
-        private static void EnsureNotEmpty(IQueryable<Enrollment> enrollments)
+        private static void EnsureNotNull(IQueryable<Enrollment> enrollments)
         {
             if (enrollments == null)
                 throw new ArgumentNullException(nameof(enrollments));
-
-            if (!enrollments.Any())
-            {
-                throw new Exception("The enrollments collection is empty.");
-            }
         }
 
-        private static void EnsureNotNull(Student student, Course course)
+        public static IQueryable<Enrollment> GetAllEnrollments(
+            IQueryable<Enrollment> enrollments)
         {
-            if (student == null)
-                throw new ArgumentNullException("Student cannot be null.");
-            if (course == null)
-                throw new ArgumentNullException("Course cannot be null.");
-        }
+            EnsureNotNull(enrollments);
 
-        public static IQueryable<Enrollment> GetAllEnrollment(IQueryable<Enrollment> enrollments)
-        {
-            EnsureNotEmpty(enrollments);
             return enrollments;
         }
 
-        public static IQueryable<Enrollment> GetStudentEnrollment(IQueryable<Enrollment> enrollments, Student student)
+        public static IQueryable<Enrollment> GetStudentEnrollments(
+            IQueryable<Enrollment> enrollments,
+            int studentId)
         {
-            EnsureNotEmpty(enrollments);
-
-            if (student == null)
-                throw new ArgumentNullException("Student cannot be null.");
-
-            return enrollments.Where(x => x.Student == student);
-        }
-
-        public static IQueryable<Enrollment> GetCourseEnrollment(IQueryable<Enrollment> enrollments, Course course)
-        {
-            EnsureNotEmpty(enrollments);
-
-            if (course == null)
-                throw new ArgumentNullException("Course cannot be null.");
-
-            return enrollments.Where(x => x.Course == course);
-        }
-
-        public static IQueryable<Enrollment> GetStudentIfAlreadyEnrolled(IQueryable<Enrollment> enrollments, Student student, Course course)
-        {
-            EnsureNotEmpty(enrollments);
-
-            EnsureNotNull(student, course);
+            EnsureNotNull(enrollments);
 
             return enrollments
-                .Where(x => x.Student == student && x.Course == course);
+                .Where(e => e.StudentId == studentId);
         }
 
-        public static int CountEnrollmentsForStudentInCourse(IQueryable<Enrollment> enrollments, Student student, Course course)
+        public static IQueryable<Enrollment> GetCourseEnrollments(
+            IQueryable<Enrollment> enrollments,
+            int courseId)
         {
-            EnsureNotEmpty(enrollments);
+            EnsureNotNull(enrollments);
 
-            if (course == null)
-                throw new ArgumentNullException("Course cannot be null.");
-
-            return enrollments.Count(e => e.Student == student && e.Course == course);
-        }
-        public static int CountCoursesForStudent(IQueryable<Enrollment> enrollments, Student student)
-        {
-            EnsureNotEmpty(enrollments);
-
-            if (student == null)
-                throw new ArgumentNullException("Student cannot be null.");
-
-            return enrollments.Where(e => e.Student == student).Select(e => e.Course).Distinct().Count();
-        }
-
-        public static Course? GetStudentMostEnrolledCourse(IQueryable<Enrollment> enrollments, Student student)
-        {
             return enrollments
-                .Where(x => x.Student == student)
-                .GroupBy(x => x.Course)
+                .Where(e => e.CourseId == courseId);
+        }
+
+        public static IQueryable<Enrollment> GetStudentIfAlreadyEnrolled(
+            IQueryable<Enrollment> enrollments,
+            int studentId,
+            int courseId)
+        {
+            EnsureNotNull(enrollments);
+
+            return enrollments
+                .Where(e => e.StudentId == studentId && e.CourseId == courseId);
+        }
+
+        public static IQueryable<Enrollment> GetEnrollmentsByStatus(
+            IQueryable<Enrollment> enrollments,
+            EnrollmentStatus enrollmentStatus)
+        {
+            EnsureNotNull(enrollments);
+
+            return enrollments
+                .Where(e => e.Status == enrollmentStatus);
+        }
+
+        public static IQueryable<Enrollment> GetRecentEnrollmentsForCourse(
+            IQueryable<Enrollment> enrollments,
+            int courseId,
+            int days)
+        {
+            EnsureNotNull(enrollments);
+
+            var fromDate = DateTime.UtcNow.AddDays(-days);
+
+            return enrollments
+                .Where(e => e.CourseId == courseId &&
+                            e.StartEnrollmentDate >= fromDate);
+        }
+
+        public static IQueryable<Course> GetStudentMostEnrolledCourse(
+            IQueryable<Enrollment> enrollments,
+            int studentId)
+        {
+            EnsureNotNull(enrollments);
+
+            return enrollments
+                .Where(e => e.StudentId == studentId)
+                .GroupBy(e => e.Course)
                 .OrderByDescending(g => g.Count())
                 .Select(g => g.Key)
-                .FirstOrDefault();
+                .Take(1);
         }
 
-        public static bool EmptyCourse(IQueryable<Enrollment> enrollments, Course course)
+        public static IQueryable<Course> GetDistinctCoursesForStudent(
+            IQueryable<Enrollment> enrollments,
+            int studentId)
         {
-            EnsureNotEmpty(enrollments);
+            EnsureNotNull(enrollments);
 
-            if (course == null)
-                throw new ArgumentNullException("Course cannot be null.");
-
-            return !enrollments.Any(x => x.Course == course);
+            return enrollments
+                .Where(e => e.StudentId == studentId)
+                .Select(e => e.Course)
+                .Distinct();
         }
-        public static IQueryable<Enrollment> LastEnrollment(IQueryable<Enrollment> enrollments, Course course)
+
+        public static IQueryable<Enrollment> GetEmptyCourseEnrollments(
+            IQueryable<Enrollment> enrollments,
+            int courseId)
         {
-            EnsureNotEmpty(enrollments);
+            EnsureNotNull(enrollments);
 
-            if (course == null)
-                throw new ArgumentNullException("Course cannot be null.");
-
-            var date = DateTime.UtcNow.AddDays(-7);
-
-            return enrollments.Where(x => x.Course == course && x.StartEnrollmentDate >= date);
-        }
-        public static IQueryable<Enrollment> GetEnrollmentsByStatus(IQueryable<Enrollment> enrollments, EnrollmentStatus enrollmentStatus)
-        {
-            EnsureNotEmpty(enrollments);
-            return enrollments.Where(x => x.Status == enrollmentStatus);
+            return enrollments
+                .Where(e => e.CourseId == courseId);
         }
     }
 }

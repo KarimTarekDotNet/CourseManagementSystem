@@ -20,8 +20,9 @@ namespace Project.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Department = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true)
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -37,8 +38,9 @@ namespace Project.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     College = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true)
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -56,6 +58,8 @@ namespace Project.Migrations
                     TotalHours = table.Column<int>(type: "int", nullable: false),
                     SessionDuration = table.Column<int>(type: "int", nullable: false),
                     Capacity = table.Column<int>(type: "int", nullable: false),
+                    Level = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     InstructorId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
@@ -77,6 +81,7 @@ namespace Project.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StudentId = table.Column<int>(type: "int", nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StartEnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndEnrollmentDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -103,42 +108,41 @@ namespace Project.Migrations
                 column: "InstructorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Enrollments_CourseId",
+                name: "IX_Enrollment_StudentCourse_Active",
                 table: "Enrollments",
-                column: "CourseId");
+                columns: new[] { "StudentId", "CourseId" },
+                unique: true,
+                filter: "[Status] != 'DROPPED'");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Enrollments_StudentId",
+                name: "IX_Enrollments_CourseId_StudentId",
                 table: "Enrollments",
-                column: "StudentId");
+                columns: new[] { "CourseId", "StudentId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Instructors_Email",
                 table: "Instructors",
                 column: "Email",
-                unique: true,
-                filter: "[Email] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Instructors_PhoneNumber",
                 table: "Instructors",
                 column: "PhoneNumber",
-                unique: true,
-                filter: "[PhoneNumber] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Students_Email",
                 table: "Students",
                 column: "Email",
-                unique: true,
-                filter: "[Email] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Students_PhoneNumber",
                 table: "Students",
                 column: "PhoneNumber",
-                unique: true,
-                filter: "[PhoneNumber] IS NOT NULL");
+                unique: true);
         }
 
         /// <inheritdoc />

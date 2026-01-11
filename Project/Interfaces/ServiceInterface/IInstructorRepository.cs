@@ -4,7 +4,7 @@ namespace Project.Interfaces.ServiceInterface
 {
     internal interface IInstructorRepository
     {
-        Task AddInstructor(string fName, string lName, string? department, string email, string phoneNumber);
+        Task<int> AddInstructor(string fName, string lName, string? department, string email, string phoneNumber);
         Task RemoveInstructor(int instructorId);
         Task UpdateInstructorFirstName(int instructorId, string fName);
         Task UpdateInstructorLastName(int instructorId, string lName);

@@ -5,63 +5,87 @@ namespace Project.Queries
 {
     public static class StudentQueries
     {
-        private static void EnsureNotEmpty(IQueryable<Student> students)
+        private static void EnsureNotNull(IQueryable<Student> students)
         {
             if (students == null)
                 throw new ArgumentNullException(nameof(students));
-
-            if (!students.Any())
-            {
-                throw new Exception("The students collection is empty.");
-            }
         }
 
-        public static IQueryable<Student> GetAllStudent(IQueryable<Student> students)
+        public static IQueryable<Student> GetAllStudents(
+            IQueryable<Student> students)
         {
-            EnsureNotEmpty(students);
+            EnsureNotNull(students);
 
             return students;
         }
 
-        public static IQueryable<Student> GetStudentWithName(IQueryable<Student> students, string fName, string lName)
+        public static Student GetStudentById(
+            IQueryable<Student> students, int id)
         {
-            EnsureNotEmpty(students);
+            EnsureNotNull(students);
 
-            if (string.IsNullOrWhiteSpace(fName) || string.IsNullOrWhiteSpace(lName))
-                throw new ArgumentNullException("First name or last name cannot be empty.");
-
-            return students.Where(x => EF.Functions.Like(x.FirstName, fName)
-            && EF.Functions.Like(x.LastName, lName));
+            return students.FirstOrDefault(x => x.Id == id) ?? throw new NullReferenceException("not found");
         }
 
-        public static IQueryable<Student> GetStudentWithEmail(IQueryable<Student> students, string email)
+        public static IQueryable<Student> GetStudentWithName(
+            IQueryable<Student> students,
+            string fName,
+            string lName)
         {
-            EnsureNotEmpty(students);
+            EnsureNotNull(students);
+
+            if (string.IsNullOrWhiteSpace(fName))
+                throw new ArgumentNullException(nameof(fName));
+
+            if (string.IsNullOrWhiteSpace(lName))
+                throw new ArgumentNullException(nameof(lName));
+
+            return students
+                .Where(s =>
+                    EF.Functions.Like(s.FirstName, $"%{fName}%") &&
+                    EF.Functions.Like(s.LastName, $"%{lName}%"));
+        }
+
+        public static Student GetStudentWithEmail(
+            IQueryable<Student> students,
+            string email)
+        {
+            EnsureNotNull(students);
 
             if (string.IsNullOrWhiteSpace(email))
-                throw new ArgumentNullException("Email cannot be empty.");
+                throw new ArgumentNullException(nameof(email));
 
-            return students.Where(x => EF.Functions.Like(x.Email, email));
+            return students
+                .FirstOrDefault(s => EF.Functions.Like(s.Email, email)) ?? throw new NullReferenceException("not found");
         }
 
-        public static IQueryable<Student> GetStudentWithPhone(IQueryable<Student> students, string phone)
+        public static Student GetStudentWithPhone(
+            IQueryable<Student> students,
+            string phone)
         {
+            EnsureNotNull(students);
+
             if (string.IsNullOrWhiteSpace(phone))
-                throw new ArgumentNullException("Phone cannot be empty.");
+                throw new ArgumentNullException(nameof(phone));
 
-            EnsureNotEmpty(students);
-
-            return students.Where(x => x.PhoneNumber == phone);
+            return students
+                    .FirstOrDefault(s => s.PhoneNumber == phone) ?? throw new NullReferenceException("not found");
         }
 
-        public static IQueryable<Student> GetStudentWithCollege(IQueryable<Student> students, string college)
+        public static IQueryable<Student> GetStudentWithCollege(
+            IQueryable<Student> students,
+            string? college)
         {
+            EnsureNotNull(students);
+
             if (string.IsNullOrWhiteSpace(college))
-                throw new ArgumentNullException("college name cannot be empty.");
+            {
+                return students
+                    .Where(s => s.College == null);
+            }
 
-            EnsureNotEmpty(students);
-
-            return students.Where(x => EF.Functions.Like(x.College, college));
+            return students
+                .Where(s => EF.Functions.Like(s.College!, $"%{college}%"));
         }
     }
 }

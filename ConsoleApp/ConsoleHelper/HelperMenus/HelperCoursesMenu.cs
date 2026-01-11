@@ -1,18 +1,16 @@
-﻿using Project.Data;
-using Project.Entities;
+﻿using ConsoleApp.ApiServices;
+using ConsoleApp.DTOs;
 using Project.Entities.Enums;
-using Project.Queries;
-using Project.Service;
 
 namespace ConsoleApp.ConsoleHelper.HelperMenus
 {
     public class HelperCoursesMenu
     {
-        private readonly CourseService _courseService;
+        private readonly CourseApiService _courseApiService;
 
-        public HelperCoursesMenu(CourseService courseService)
+        public HelperCoursesMenu(CourseApiService courseApiService)
         {
-            _courseService = courseService;
+            _courseApiService = courseApiService;
         }
 
         public async Task AddCourse()
@@ -31,7 +29,16 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                 if (levelInput < 1 || levelInput > 3)
                     throw new ArgumentOutOfRangeException("Invalid course level.");
                 var courseLevel = (CourseLevel)(levelInput - 1);
-                await _courseService.AddCourse(name, description, totalHours, sessionDuration, capacity, courseLevel);
+                var courseDTO = new CourseDTO
+                {
+                    Name = name,
+                    Description = description,
+                    TotalHours = totalHours,
+                    SessionDuration = sessionDuration,
+                    Capacity = capacity,
+                    Level = courseLevel
+                };
+                await _courseApiService.AddCourse(courseDTO);
                 Console.WriteLine("Course added successfully.");
             }
             catch (Exception ex)
@@ -46,7 +53,7 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
             {
                 Console.WriteLine("=== Remove Course ===");
                 var courseId = ReadIntInput("Enter course ID to remove: ");
-                await _courseService.DeleteCourse(courseId);
+                await _courseApiService.DeleteCourse(courseId);
                 Console.WriteLine("Course removed successfully.");
             }
             catch (Exception ex)
@@ -56,8 +63,24 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                     Console.WriteLine($"Details: {ex.InnerException.Message}");
             }
         }
+        public async Task RestoreCourse()
+        {
+            try
+            {
+                Console.WriteLine("=== Restore Course ===");
+                var courseId = ReadIntInput("Enter course ID to restore: ");
+                await _courseApiService.RestoreCourse(courseId);
+                Console.WriteLine("Course restored successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                if (ex.InnerException != null)
+                    Console.WriteLine($"Details: {ex.InnerException.Message}");
+            }
+        }
 
-        public void ViewCourses(AppDbContext context)
+        public async Task ViewCourses()
         {
             Console.WriteLine("== Show Course ==");
             while (true)
@@ -74,25 +97,25 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                 switch (choice)
                 {
                     case 1:
-                        var collection = CourseQueries.GetAllCourses(context.Courses.AsQueryable());
+                        var collection = await _courseApiService.GetAllCourses();
                         Console.WriteLine("All Courses");
-                        forLoop(collection.ToList());
+                        DisplayStudents(collection);
                         break;
                     case 2:
                         Console.Write("Enter course title to search: ");
                         string title = Console.ReadLine() ?? string.Empty;
-                        collection = CourseQueries.GetCoursesByTitle(context.Courses.AsQueryable(), title);
-                        forLoop(collection.ToList());
+                        collection = await _courseApiService.GetCourseByName(title);
+                        DisplayStudents(collection);
                         break;
                     case 3:
                         Console.WriteLine("Courses Without Instructor:");
-                        collection = CourseQueries.GetCoursesWithoutInstructor(context.Courses.AsQueryable());
-                        forLoop(collection.ToList());
+                        collection = await _courseApiService.GetCoursesWithoutInstructor();
+                        DisplayStudents(collection);
                         break;
                     case 4:
                         int MinStudent = ReadIntInput("Courses Min Students:");
-                        collection = CourseQueries.GetCoursesWithMinStudents(context.Courses.AsQueryable(), MinStudent);
-                        forLoop(collection.ToList());
+                        collection = await _courseApiService.GetCoursesWithMinStudents(MinStudent);
+                        DisplayStudents(collection);
                         break;
                     case 5:
                         try
@@ -101,8 +124,8 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                             if (level < 1 || level > 3)
                                 throw new ArgumentOutOfRangeException("Invalid course level.");
                         var courseLevel = (CourseLevel)(level - 1);
-                        collection = CourseQueries.GetCoursesWithLevel(context.Courses.AsQueryable(), courseLevel);
-                            forLoop(collection.ToList());
+                        collection = await _courseApiService.GetCoursesWithLevel(courseLevel);
+                            DisplayStudents(collection);
                         }
                         catch (Exception ex)
                         {
@@ -143,32 +166,32 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                         case 1:
                             Console.Write("Enter new course name: ");
                             string name = Console.ReadLine() ?? string.Empty;
-                            await _courseService.UpdateCourseName(courseId, name);
+                            await _courseApiService.UpdateName(courseId, name);
                             Console.WriteLine("Course name updated successfully.");
                             break;
 
                         case 2:
                             Console.Write("Enter new course description (optional): ");
                             string? description = Console.ReadLine();
-                            await _courseService.UpdateCourseDescription(courseId, description);
+                            await _courseApiService.UpdateDescription(courseId, description);
                             Console.WriteLine("Course description updated successfully.");
                             break;
 
                         case 3:
                             int totalHours = ReadIntInput("Enter new total hours: ");
-                            await _courseService.UpdateCourseTotalHours(courseId, totalHours);
+                            await _courseApiService.UpdateTotalHours(courseId, totalHours);
                             Console.WriteLine("Course total hours updated successfully.");
                             break;
 
                         case 4:
                             int sessionDuration = ReadIntInput("Enter new session duration: ");
-                            await _courseService.UpdateCourseSessionDuration(courseId, sessionDuration);
+                            await _courseApiService.UpdateSessionDuration(courseId, sessionDuration);
                             Console.WriteLine("Course session duration updated successfully.");
                             break;
 
                         case 5:
                             int capacity = ReadIntInput("Enter new capacity: ");
-                            await _courseService.UpdateCourseCapacity(courseId, capacity);
+                            await _courseApiService.UpdateCapacity(courseId, capacity);
                             Console.WriteLine("Course capacity updated successfully.");
                             break;
 
@@ -177,7 +200,7 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                             if (levelInput < 1 || levelInput > 3)
                                 throw new ArgumentOutOfRangeException("Invalid course level.");
                             var courseLevel = (CourseLevel)levelInput - 1;
-                            await _courseService.UpdateCourseLevel(courseId, courseLevel);
+                            await _courseApiService.UpdateLevel(courseId, courseLevel);
                             Console.WriteLine("Course level updated successfully.");
                             break;
 
@@ -196,7 +219,6 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
         }
 
 
-
         private int ReadIntInput(string prompt)
         {
             int value;
@@ -210,16 +232,39 @@ namespace ConsoleApp.ConsoleHelper.HelperMenus
                 Console.WriteLine("Invalid input. Please enter a valid number.");
             }
         }
-        private void forLoop(List<Course> collection)
+        private void DisplayStudents(List<CourseDTO> courseDTOs, int pageSize = 10)
         {
-            if (!collection.Any())
+            if (courseDTOs == null || courseDTOs.Count == 0)
             {
-                Console.WriteLine("No Courses found.");
+                Console.WriteLine("No students found.");
                 return;
             }
-            foreach (var item in collection)
+            int currentPage = 0;
+            int totalPages = (int)Math.Ceiling(courseDTOs.Count / (double)pageSize);
+            while (true)
             {
-                Console.WriteLine(item);
+                Console.Clear();
+                Console.WriteLine($"Page {currentPage + 1}/{totalPages}");
+                Console.WriteLine("-------------------------");
+                var pageItems = courseDTOs.Skip(currentPage * pageSize).Take(pageSize).ToList();
+
+                foreach (var s in pageItems)
+                {
+                    Console.WriteLine(s);
+                }
+
+                Console.WriteLine("\nUse Left/Right arrows to navigate, Esc to exit.");
+
+                var key = Console.ReadKey(true).Key;
+
+                if (key == ConsoleKey.RightArrow && currentPage < totalPages - 1)
+                    currentPage++;
+
+                else if (key == ConsoleKey.LeftArrow && currentPage > 0)
+                    currentPage--;
+
+                else
+                    break;
             }
         }
     }
